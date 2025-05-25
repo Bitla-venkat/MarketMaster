@@ -1,10 +1,40 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <title>Dashboard</title>
-</head>
-<body>
-  <h1>Welcome to MarketMaster Dashboard</h1>
-  <p>You are now logged in via Google!</p>
-</body>
-</html>
+<form id="csvForm" enctype="multipart/form-data">
+  <input type="file" name="csvfile" accept=".csv" required />
+  <input type="text" id="message" placeholder="Enter your message" required />
+  <button type="submit">Upload CSV</button>
+</form>
+
+<div id="previewOutput" style="margin-top: 1rem; white-space: pre-wrap;"></div>
+
+<script>
+  document.getElementById('csvForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const formData = new FormData(e.target);
+
+    const uploadRes = await fetch('/api/email/upload-csv', {
+      method: 'POST',
+      body: formData
+    });
+
+    const uploadData = await uploadRes.json();
+    console.log('Parsed CSV:', uploadData);
+
+    const message = document.getElementById('message').value;
+
+    const previewRes = await fetch('/api/email/generate-preview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message,
+        recipients: uploadData.users.map(u => ({
+        email: u['mail-id'],
+        tone: u.tone
+        })).filter(u => u.email && u.tone)// Assuming this is the structure
+      })
+    });
+
+    const previewData = await previewRes.json();
+    document.getElementById('previewOutput').innerText =
+      `Tone Used: ${previewData.toneUsed}\nTo: ${previewData.recipient}\n\n${previewData.preview}`;
+  });
+</script>

@@ -6,6 +6,7 @@ const passport = require('passport');
 const authRoutes = require('./routes/auth');
 const path = require('path');
 const ensureAuthenticated = require('./middleware/authMiddleware');
+const emailRoutes = require('./routes/email');
 require('./config/passport'); // Make sure this path is correct
 
 dotenv.config();
@@ -27,6 +28,7 @@ app.use(session({
 
 app.use(passport.initialize());
 app.use(passport.session());
+app.use('/api/email', emailRoutes);
 
 // Default route
 app.get('/', (req, res) => {
