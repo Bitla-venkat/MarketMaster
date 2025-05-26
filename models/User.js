@@ -2,10 +2,12 @@ const mongoose = require('mongoose');
 const bcrypt = require('bcryptjs');
 
 const UserSchema = new mongoose.Schema({
-  email: { type: String, required: true, unique: true },
-  password: { type: String }, // no longer required
-  googleId: { type: String }, // for OAuth users
-  name: { type: String }
+  googleId: String,
+  email: String,
+  name: String,
+  password: String, // If you support local login too
+  accessToken: String,
+  refreshToken: String
 });
 
 

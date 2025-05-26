@@ -5,19 +5,22 @@
 </form>
 
 <div id="previewOutput" style="margin-top: 1rem; white-space: pre-wrap;"></div>
+<button id="sendEmails" style="display:none; margin-top: 1rem;">Send Emails</button>
 
 <script>
+  let parsedRecipients = [];
+
   document.getElementById('csvForm').addEventListener('submit', async (e) => {
     e.preventDefault();
     const formData = new FormData(e.target);
 
     const uploadRes = await fetch('/api/email/upload-csv', {
       method: 'POST',
-      body: formData
+      body: formData,
     });
 
     const uploadData = await uploadRes.json();
-    console.log('Parsed CSV:', uploadData);
+    parsedRecipients = uploadData.users;
 
     const message = document.getElementById('message').value;
 
@@ -26,15 +29,34 @@
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         message,
-        recipients: uploadData.users.map(u => ({
-        email: u['mail-id'],
-        tone: u.tone
-        })).filter(u => u.email && u.tone)// Assuming this is the structure
-      })
+        recipients: parsedRecipients,
+      }),
     });
 
     const previewData = await previewRes.json();
     document.getElementById('previewOutput').innerText =
       `Tone Used: ${previewData.toneUsed}\nTo: ${previewData.recipient}\n\n${previewData.preview}`;
+    
+    document.getElementById('sendEmails').style.display = 'inline-block';
+  });
+
+  document.getElementById('sendEmails').addEventListener('click', async () => {
+    const message = document.getElementById('message').value;
+
+    const sendRes = await fetch('/api/email/send', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        message,
+        recipients: parsedRecipients,
+      }),
+    });
+
+    const result = await sendRes.json();
+    if (result.success) {
+      alert('Emails sent successfully!');
+    } else {
+      alert('Error sending emails');
+    }
   });
 </script>

@@ -10,7 +10,15 @@ router.post('/signup', registerUser);
 
 // Start Google OAuth
 router.get('/google',
-  passport.authenticate('google', { scope: ['profile', 'email'] })
+  passport.authenticate('google', {
+    scope: [
+      'profile',
+      'email',
+      'https://www.googleapis.com/auth/gmail.send'
+    ],
+    accessType: 'offline',   // Request refresh token
+    prompt: 'consent'        // Force re-consent to always get refresh token
+  })
 );
 
 // Handle callback
@@ -18,6 +26,8 @@ router.get('/google/callback',
   passport.authenticate('google', { failureRedirect: '/login/login.html' }),
   (req, res) => {
     // Redirect after successful login
+    console.log("User refresh token:", req.user.refreshToken);
+
     res.redirect('/dashboard'); // or wherever you want
   }
 );

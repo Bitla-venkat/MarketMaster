@@ -4,32 +4,69 @@ const csv = require('csv-parser');
 const fs = require('fs');
 const path = require('path');
 const { generatePreview } = require('../controllers/emailController');
+const { sendEmail } = require('../services/gmailService');
+const User = require('../models/User');
 
 const router = express.Router();
-
-// Set up multer for CSV uploads
 const upload = multer({ dest: 'uploads/' });
 
-router.post('/upload-csv', upload.single('csvfile'), (req, res) => {
+// 👇 Middleware to check if user is authenticated
+const requireAuth = (req, res, next) => {
+  if (req.isAuthenticated()) return next();
+  return res.status(401).json({ error: 'Unauthorized' });
+};
+
+// 📤 Upload and parse CSV
+router.post('/upload-csv', requireAuth, upload.single('csvfile'), (req, res) => {
   const results = [];
   const filePath = path.join(__dirname, '..', req.file.path);
 
   fs.createReadStream(filePath)
     .pipe(csv())
     .on('data', (data) => {
-      // Each row will be like { email: '...', preferred tone: '...' }
-      results.push(data);
+      if (data['mail-id']) {
+        results.push({
+          email: data['mail-id'],
+          tone: data['tone'] || 'friendly',
+        });
+      }
     })
     .on('end', () => {
-      // Delete file after parsing
       fs.unlinkSync(filePath);
       res.json({ users: results });
     })
-    .on('error', (err) => {
+    .on('error', () => {
       res.status(500).json({ error: 'Failed to parse CSV' });
     });
 });
 
-router.post('/generate-preview', generatePreview);
+// ✉️ Generate preview email
+router.post('/generate-preview', requireAuth, generatePreview);
+
+// 📨 Send actual emails
+router.post('/send', requireAuth, async (req, res) => {
+  const { message, recipients } = req.body;
+
+  try {
+    const user = await User.findById(req.user._id);
+    if (!user || !user.refreshToken) {
+      return res.status(400).json({ error: 'No Gmail OAuth token found' });
+    }
+
+    const sendResults = [];
+    for (const r of recipients) {
+      const emailBody = `Hi,\n\n${message}\n\nRegards,\nMarketMaster`;
+      console.log('Request body:', req.body);
+    console.log('User from req:', req.user);
+      const result = await sendEmail(user, r.email, "Your Message from MarketMaster", emailBody);
+      sendResults.push({ email: r.email, messageId: result.messageId });
+    }
+
+    res.json({ success: true, results: sendResults });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Failed to send emails' });
+  }
+});
 
 module.exports = router;
