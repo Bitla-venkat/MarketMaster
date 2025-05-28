@@ -58,6 +58,9 @@ router.post('/send', requireAuth, async (req, res) => {
       const emailBody = `Hi,\n\n${message}\n\nRegards,\nMarketMaster`;
       console.log('Request body:', req.body);
     console.log('User from req:', req.user);
+      //here add code to generate mail via hugging face api or openai(if ur rich) 
+      //async sendEmail ( user,to,subject,message)
+      //figure out how you can parseout  subject from the ai generated content
       const result = await sendEmail(user, r.email, "Your Message from MarketMaster", emailBody);
       sendResults.push({ email: r.email, messageId: result.messageId });
     }
