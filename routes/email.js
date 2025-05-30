@@ -6,7 +6,7 @@ const path = require('path');
 const { generatePreview } = require('../controllers/emailController');
 const { sendEmail } = require('../services/gmailService');
 const User = require('../models/User');
-
+const generateEmail = require('../utils/mailGenerator');
 const router = express.Router();
 const upload = multer({ dest: 'uploads/' });
 
@@ -55,13 +55,14 @@ router.post('/send', requireAuth, async (req, res) => {
 
     const sendResults = [];
     for (const r of recipients) {
-      const emailBody = `Hi,\n\n${message}\n\nRegards,\nMarketMaster`;
+
       console.log('Request body:', req.body);
     console.log('User from req:', req.user);
       //here add code to generate mail via hugging face api or openai(if ur rich) 
       //async sendEmail ( user,to,subject,message)
       //figure out how you can parseout  subject from the ai generated content
-      const result = await sendEmail(user, r.email, "Your Message from MarketMaster", emailBody);
+      const generatedMail = await generateEmail(r.tone,message);
+      const result = await sendEmail(user, r.email, generatedMail.subject, generatedMail.body);
       sendResults.push({ email: r.email, messageId: result.messageId });
     }
 
